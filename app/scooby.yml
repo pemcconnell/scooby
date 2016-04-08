@@ -1,0 +1,6 @@
+network:
+  containerport: 80
+  subdomain: scooby
+app:
+  image: gcr.io/kubatron-1337/phpdemo
+  htpasswd: username:$apr1$TZA4mUSC$fQP4rjfzv.R0ViMlLfstx0

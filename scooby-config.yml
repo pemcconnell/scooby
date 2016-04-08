@@ -1,0 +1,6 @@
+config:
+  tld: mycompany.com
+  image: rehabstudio/scooby:latest
+  containerport: 80
+  username: scooby
+  password: doo

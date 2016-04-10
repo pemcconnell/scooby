@@ -23,6 +23,7 @@ func Dockerfile(image, path, containerpath string) {
 
 func BuildAndTagContainer(name string, path string) {
 	log.Debug("build and tag container")
+	log.Debug(name)
 
 	client, err := docker.NewClientFromEnv()
 	if err != nil {

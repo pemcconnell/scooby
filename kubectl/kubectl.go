@@ -14,6 +14,7 @@ import (
 
 	"encoding/json"
 	"os"
+	"os/exec"
 )
 
 func IsEnvReady() {
@@ -23,22 +24,60 @@ func IsEnvReady() {
 func Deploy(subdomain, tag, port, dir string) {
 	log.Debug("running deploy from kubectl")
 
-	kubeConfigs(subdomain, tag, port, dir)
-}
-
-func kubeConfigs(subdomain, tag, port, dir string) {
 	// create .kube directory
 	os.Mkdir(dir+".kube", 0755)
 
-	// create service yaml
-	kubeService(subdomain, tag, port, dir)
+	if _, err := os.Stat(dir + ".kube/service.yml"); os.IsNotExist(err) {
+		// create service yaml
+		kubeService(subdomain, tag, port, dir)
+		kubeDeployService(dir)
+	}
 
-	// create deployment yaml
 	kubeDeployment(subdomain, tag, port, dir)
+	if _, err := os.Stat(dir + ".kube/deployment.yml"); os.IsNotExist(err) {
+		// create deployment yaml
+		kubeDeployDeployment(dir)
+	} else {
+		kubeUpdate(dir)
+	}
 
-	// create .kube/config file
-	kubeConfig(subdomain, tag, dir)
+	if _, err := os.Stat(dir + ".kube/config"); os.IsNotExist(err) {
+		// create .kube/config file
+		kubeConfig(subdomain, tag, dir)
+	}
+}
 
+func kubeDeployService(dir string) {
+	kubedir := dir + ".kube/"
+	// service
+	log.Debug("kubectl create service")
+	cmd := "kubectl"
+	args := []string{"create", "-f", kubedir + "service.yml"}
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+}
+
+func kubeDeployDeployment(dir string) {
+	kubedir := dir + ".kube/"
+	// deployment
+	log.Debug("kubectl create deploy")
+	cmd := "kubectl"
+	args := []string{"create", "-f", kubedir + "deployment.yml"}
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+}
+
+func kubeUpdate(dir string) {
+	cmd := "kubectl"
+	args := []string{"apply", "-f", dir + ".kube/deployment.yml"}
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 }
 
 func kubeService(subdomain, tag, port, dir string) {
@@ -88,19 +127,17 @@ spec:
 
 func kubeConfig(subdomain, tag, dir string) {
 	kubeconfig := dir + ".kube/config"
-	if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
-		content := &KubeConfig{
-			container: KubeConfigContainer{
-				subdomain: subdomain,
-				tag:       tag,
-			},
-		}
-		j, jerr := json.MarshalIndent(content, "", "  ")
-		if jerr != nil {
-			log.Fatal(jerr)
-		}
-		writeFile(kubeconfig, j)
+	content := &KubeConfig{
+		container: KubeConfigContainer{
+			subdomain: subdomain,
+			tag:       tag,
+		},
 	}
+	j, jerr := json.MarshalIndent(content, "", "  ")
+	if jerr != nil {
+		log.Fatal(jerr)
+	}
+	writeFile(kubeconfig, j)
 }
 
 func writeFile(path string, content []byte) {

@@ -19,6 +19,7 @@ func IsEnvReady() {
 
 func PushContainer(name string) {
 	log.Debug("pushing the container onto gcr.io")
+	log.Debug(name)
 	cmd := "gcloud"
 	args := []string{"docker", "push", name}
 	if err := exec.Command(cmd, args...).Run(); err != nil {

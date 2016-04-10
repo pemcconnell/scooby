@@ -10,12 +10,11 @@ import (
 
     "os"
     "path/filepath"
-    //    "time"
+    "time"
 )
 
 type Config struct {
     dir        string // app directory
-    tld        string // top-level domain
     sub        string // subdomain
     port       string // container port
     hubbase    string // hub-base
@@ -39,6 +38,7 @@ func main() {
 
     var (
         subdomain string
+        project   string
     )
 
     isEnvironmentReady()
@@ -49,9 +49,15 @@ func main() {
         "web apps to kubernetes"
     app.Flags = []cli.Flag{
         cli.StringFlag{
-            Name:        "to",
+            Name:        "to, t",
             Usage:       "the desired subdomain to deploy to",
             Destination: &subdomain,
+        },
+        cli.StringFlag{
+            Name:        "project, p",
+            Usage:       "gcloud project name",
+            EnvVar:      "SCOOBY_PROJECT",
+            Destination: &project,
         },
     }
     config := config(subdomain)
@@ -62,13 +68,18 @@ func main() {
             Action: func(c *cli.Context) {
                 log.Debug("deploy")
                 if subdomain == "" {
-                    log.Fatal("You must specify a subdomain. Use -to=")
+                    log.Fatal("You must specify a subdomain. Use -t=")
                 }
+                if project == "" {
+                    log.Fatal("You must specify a project. Use -p=, or the " +
+                        "SCOOBY_PROJECT environment variable")
+                }
+                config.hubbase = "gcr.io/" + project + "/"
                 config.dir = filepath.Clean(c.Args().First())
                 if config.dir != "/" {
                     config.dir = config.dir + "/"
                 }
-                tag := config.hubbase + config.sub + ":" + config.version
+                tag := config.hubbase + subdomain + config.sub + ":" + config.version
 
                 docker.Dockerfile(config.image, config.dir, config.dockerpath)
                 docker.BuildAndTagContainer(tag, config.dir)
@@ -93,11 +104,9 @@ func isEnvironmentReady() {
 func config(subdomain string) Config {
     log.Debug("checking that the config is ok")
     config := Config{
-        tld:        "myprototypes.com",
         port:       "80",
-        hubbase:    "gcr.io/something",
         image:      "nginx:stable-alpine",
-        version:    "latest", //time.Now().Format("20060102150405"),
+        version:    time.Now().Format("20060102150405"),
         sub:        subdomain,
         dockerpath: "/usr/share/nginx/html",
     }

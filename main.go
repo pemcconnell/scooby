@@ -21,6 +21,7 @@ type Config struct {
     version    string // docker tag version
     image      string // image used for dockerfile
     dockerpath string // dest path in container
+    localpath  string // relative path to add
 }
 
 /*
@@ -81,7 +82,7 @@ func main() {
                 }
                 tag := config.hubbase + subdomain + config.sub + ":" + config.version
 
-                docker.Dockerfile(config.image, config.dir, config.dockerpath)
+                docker.Dockerfile(config.image, config.dir, config.localpath, config.dockerpath)
                 docker.BuildAndTagContainer(tag, config.dir)
                 gcloud.PushContainer(tag)
                 kubectl.Deploy(subdomain, tag, config.port, config.dir)
@@ -109,6 +110,7 @@ func config(subdomain string) Config {
         version:    time.Now().Format("20060102150405"),
         sub:        subdomain,
         dockerpath: "/usr/share/nginx/html",
+        localpath:  ".",
     }
     return config
 }

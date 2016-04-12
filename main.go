@@ -40,6 +40,7 @@ func main() {
     var (
         subdomain string
         project   string
+        port      string
     )
 
     isEnvironmentReady()
@@ -50,31 +51,41 @@ func main() {
         "web apps to kubernetes"
     app.Flags = []cli.Flag{
         cli.StringFlag{
-            Name:        "to, t",
-            Usage:       "the desired subdomain to deploy to",
-            Destination: &subdomain,
-        },
-        cli.StringFlag{
-            Name:        "project, p",
+            Name:        "project, pr",
             Usage:       "gcloud project name",
             EnvVar:      "SCOOBY_PROJECT",
             Destination: &project,
         },
     }
-    config := config(subdomain)
+    config := config()
     app.Commands = []cli.Command{
         {
             Name:  "deploy",
             Usage: "deploy an app",
+            Flags: []cli.Flag{
+                cli.StringFlag{
+                    Name:        "to, t",
+                    Usage:       "the desired subdomain to deploy to",
+                    Destination: &subdomain,
+                },
+                cli.StringFlag{
+                    Name:        "port, p",
+                    Usage:       "container port",
+                    Value:       "80",
+                    Destination: &port,
+                },
+            },
             Action: func(c *cli.Context) {
                 log.Debug("deploy")
                 if subdomain == "" {
                     log.Fatal("You must specify a subdomain. Use -t=")
+
                 }
                 if project == "" {
                     log.Fatal("You must specify a project. Use -p=, or the " +
                         "SCOOBY_PROJECT environment variable")
                 }
+                config.port = port
                 config.hubbase = "gcr.io/" + project + "/"
                 config.dir = filepath.Clean(c.Args().First())
                 if config.dir != "/" {
@@ -87,7 +98,6 @@ func main() {
                 gcloud.PushContainer(tag)
                 kubectl.Deploy(subdomain, tag, config.port, config.dir)
 
-                generateScoobyFiles()
                 presentData()
             },
         },
@@ -102,21 +112,15 @@ func isEnvironmentReady() {
     kubectl.IsEnvReady()
 }
 
-func config(subdomain string) Config {
+func config() Config {
     log.Debug("checking that the config is ok")
     config := Config{
-        port:       "80",
         image:      "nginx:stable-alpine",
         version:    time.Now().Format("20060102150405"),
-        sub:        subdomain,
         dockerpath: "/usr/share/nginx/html",
         localpath:  ".",
     }
     return config
-}
-
-func generateScoobyFiles() {
-    log.Debug("generating scooby files, if needed")
 }
 
 func presentData() {

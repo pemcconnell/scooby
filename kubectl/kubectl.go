@@ -45,6 +45,19 @@ func Deploy(subdomain, tag, port, dir string) {
 		// create .kube/config file
 		kubeConfig(subdomain, tag, dir)
 	}
+
+	kubeExecProxyGenerator(subdomain, port)
+}
+
+func kubeExecProxyGenerator(subdomain, port string) {
+	log.Debug("kubectl exec proxy generator")
+	cmd := "kubectl"
+	args := []string{"exec", "-ti", "nope", "--", "sh", "-c", "/scooby_proxy_alpine -resolver=10.39.240.10 -subdomain=" + subdomain + " -port=" + port + " -tld=nope -htpasswd=nope"}
+	log.Debug(args)
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 }
 
 func kubeDeployService(dir string) {

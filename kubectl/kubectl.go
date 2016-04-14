@@ -25,6 +25,7 @@ func Deploy(subdomain, tag, port, dir string) {
 	log.Debug("running deploy from kubectl")
 
 	// create .kube directory
+	log.Debug("creating .kube folder")
 	os.Mkdir(dir+".kube", 0755)
 
 	if _, err := os.Stat(dir + ".kube/service.yml"); os.IsNotExist(err) {
@@ -46,18 +47,6 @@ func Deploy(subdomain, tag, port, dir string) {
 		kubeConfig(subdomain, tag, dir)
 	}
 
-	kubeExecProxyGenerator(subdomain, port)
-}
-
-func kubeExecProxyGenerator(subdomain, port string) {
-	log.Debug("kubectl exec proxy generator")
-	cmd := "kubectl"
-	args := []string{"exec", "-ti", "nope", "--", "sh", "-c", "/scooby_proxy_alpine -resolver=10.39.240.10 -subdomain=" + subdomain + " -port=" + port + " -tld=nope -htpasswd=nope"}
-	log.Debug(args)
-	if err := exec.Command(cmd, args...).Run(); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
 }
 
 func kubeDeployService(dir string) {
@@ -65,10 +54,10 @@ func kubeDeployService(dir string) {
 	// service
 	log.Debug("kubectl create service")
 	cmd := "kubectl"
-	args := []string{"create", "-f", kubedir + "service.yml"}
-	if err := exec.Command(cmd, args...).Run(); err != nil {
+	args := []string{"create", "-f", kubedir + "service.yml", "--namespace=scooby"}
+	if out, err := exec.Command(cmd, args...).Output(); err != nil {
+		log.Debug(out)
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
@@ -77,23 +66,25 @@ func kubeDeployDeployment(dir string) {
 	// deployment
 	log.Debug("kubectl create deploy")
 	cmd := "kubectl"
-	args := []string{"create", "-f", kubedir + "deployment.yml"}
-	if err := exec.Command(cmd, args...).Run(); err != nil {
+	args := []string{"create", "-f", kubedir + "deployment.yml", "--namespace=scooby"}
+	if out, err := exec.Command(cmd, args...).Output(); err != nil {
+		log.Debug(out)
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
 func kubeUpdate(dir string) {
+	log.Debug("kubectl apply")
 	cmd := "kubectl"
-	args := []string{"apply", "-f", dir + ".kube/deployment.yml"}
-	if err := exec.Command(cmd, args...).Run(); err != nil {
+	args := []string{"apply", "-f", dir + ".kube/deployment.yml", "--namespace=scooby"}
+	if out, err := exec.Command(cmd, args...).Output(); err != nil {
+		log.Debug(out)
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
 func kubeService(subdomain, tag, port, dir string) {
+	log.Debug("kubeservice")
 	filepath := dir + ".kube/service.yml"
 	content := []byte(`apiVersion: v1
 kind: Service
@@ -104,12 +95,12 @@ spec:
   ports:
   - port: ` + port + `
   selector:
-    app: ` + subdomain + `
-    tier: ` + subdomain)
+    app: ` + subdomain)
 	writeFile(filepath, content)
 }
 
 func kubeDeployment(subdomain, tag, port, dir string) {
+	log.Debug("kubedeployment")
 	filepath := dir + ".kube/deployment.yml"
 	content := []byte(`apiVersion: extensions/v1beta1
 kind: Deployment
@@ -120,8 +111,7 @@ spec:
   template:
     metadata:
       labels:
-        app: ` + subdomain + `
-        tier: ` + subdomain + `
+        subdomain: ` + subdomain + `
     spec:
       containers:
       - name: ` + subdomain + `
@@ -139,6 +129,7 @@ spec:
 }
 
 func kubeConfig(subdomain, tag, dir string) {
+	log.Debug("kube config")
 	kubeconfig := dir + ".kube/config"
 	content := &KubeConfig{
 		container: KubeConfigContainer{

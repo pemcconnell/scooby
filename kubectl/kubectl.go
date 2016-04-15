@@ -93,7 +93,8 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-  - port: ` + port + `
+  - port: 80
+    targetPort: ` + port + `
   selector:
     app: ` + subdomain)
 	writeFile(filepath, content)
@@ -124,7 +125,8 @@ spec:
         - name: GET_HOSTS_FROM
           value: dns
         ports:
-        - containerPort: ` + port)
+        - hostPort: 80
+          containerPort: ` + port)
 	writeFile(filepath, content)
 }
 

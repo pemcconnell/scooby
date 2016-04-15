@@ -103,7 +103,7 @@ func main() {
                 docker.Dockerfile(config.image, config.dir, config.localpath, config.dockerpath)
                 docker.BuildAndTagContainer(tag, config.dir)
                 gcloud.PushContainer(tag)
-                kubectl.Deploy(subdomain, tag, config.port, config.dir)
+                kubectl.Deploy(namespace, subdomain, tag, config.port, config.dir)
 
                 presentData()
             },

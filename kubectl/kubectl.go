@@ -21,7 +21,7 @@ func IsEnvReady() {
 	log.Debug("checking that your environment is ready [kubectl]")
 }
 
-func Deploy(subdomain, tag, port, dir string) {
+func Deploy(namespace, subdomain, tag, port, dir string) {
 	log.Debug("running deploy from kubectl")
 
 	// create .kube directory
@@ -31,15 +31,15 @@ func Deploy(subdomain, tag, port, dir string) {
 	if _, err := os.Stat(dir + ".kube/service.yml"); os.IsNotExist(err) {
 		// create service yaml
 		kubeService(subdomain, tag, port, dir)
-		kubeDeployService(dir)
+		kubeDeployService(namespace, dir)
 	}
 
 	kubeDeployment(subdomain, tag, port, dir)
 	if _, err := os.Stat(dir + ".kube/deployment.yml"); os.IsNotExist(err) {
 		// create deployment yaml
-		kubeDeployDeployment(dir)
+		kubeDeployDeployment(namespace, dir)
 	} else {
-		kubeUpdate(dir)
+		kubeUpdate(namespace, dir)
 	}
 
 	if _, err := os.Stat(dir + ".kube/config"); os.IsNotExist(err) {
@@ -49,34 +49,34 @@ func Deploy(subdomain, tag, port, dir string) {
 
 }
 
-func kubeDeployService(dir string) {
+func kubeDeployService(namespace, dir string) {
 	kubedir := dir + ".kube/"
 	// service
 	log.Debug("kubectl create service")
 	cmd := "kubectl"
-	args := []string{"create", "-f", kubedir + "service.yml", "--namespace=scooby"}
+	args := []string{"create", "-f", kubedir + "service.yml", "--namespace=" + namespace}
 	if out, err := exec.Command(cmd, args...).Output(); err != nil {
 		log.Debug(out)
 		log.Fatal(err)
 	}
 }
 
-func kubeDeployDeployment(dir string) {
+func kubeDeployDeployment(namespace, dir string) {
 	kubedir := dir + ".kube/"
 	// deployment
 	log.Debug("kubectl create deploy")
 	cmd := "kubectl"
-	args := []string{"create", "-f", kubedir + "deployment.yml", "--namespace=scooby"}
+	args := []string{"create", "-f", kubedir + "deployment.yml", "--namespace=" + namespace}
 	if out, err := exec.Command(cmd, args...).Output(); err != nil {
 		log.Debug(out)
 		log.Fatal(err)
 	}
 }
 
-func kubeUpdate(dir string) {
+func kubeUpdate(namespace, dir string) {
 	log.Debug("kubectl apply")
 	cmd := "kubectl"
-	args := []string{"apply", "-f", dir + ".kube/deployment.yml", "--namespace=scooby"}
+	args := []string{"apply", "-f", dir + ".kube/deployment.yml", "--namespace=" + namespace}
 	if out, err := exec.Command(cmd, args...).Output(); err != nil {
 		log.Debug(out)
 		log.Fatal(err)

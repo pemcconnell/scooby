@@ -39,6 +39,7 @@ func main() {
 
     var (
         subdomain string
+        namespace string
         project   string
         port      string
     )
@@ -55,6 +56,12 @@ func main() {
             Usage:       "gcloud project name",
             EnvVar:      "SCOOBY_PROJECT",
             Destination: &project,
+        },
+        cli.StringFlag{
+            Name:        "namespace, n",
+            Usage:       "namespace",
+            EnvVar:      "SCOOBY_NAMESPACE",
+            Destination: &namespace,
         },
     }
     config := config()

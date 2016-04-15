@@ -31,7 +31,6 @@ scooby deploy ./app -to=thissubdomain
 
 func init() {
     log.SetOutput(os.Stderr)
-    log.SetLevel(log.DebugLevel)
 }
 
 func main() {
@@ -50,6 +49,7 @@ func main() {
     app.Name = "scooby"
     app.Usage = "a super simple, opinionated way to deploy " +
         "web apps to kubernetes"
+    app.Version = "0.0.1"
     app.Flags = []cli.Flag{
         cli.StringFlag{
             Name:        "project, pr",
@@ -59,7 +59,7 @@ func main() {
         },
         cli.StringFlag{
             Name:        "namespace, n",
-            Usage:       "namespace",
+            Usage:       "set the kubernetes namespace to use",
             EnvVar:      "SCOOBY_NAMESPACE",
             Destination: &namespace,
         },
